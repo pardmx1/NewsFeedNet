@@ -92,15 +92,15 @@ namespace NewsFeedNet.Controllers
             string sources = HttpContext.Request.Cookies["sources"];
             if (String.IsNullOrEmpty(startDate) && String.IsNullOrEmpty(endDate))
             {
-                //articles = await _newsApi.GetArticles(sources);
-                if (ViewBag.LastArticle = articles[0].url) {
+                articles = await _newsApi.GetArticles(sources);
+                if (ViewBag.LastArticle != articles[0].url) {
                     newArticle = true;
                     ViewBag.LastArticle = articles[0].url;
                 }
             }
             else
             {
-                //articles = await _newsApi.GetArticlesByDate(sources, startDate, endDate);
+                articles = await _newsApi.GetArticlesByDate(sources, startDate, endDate);
             }
 
             if(subscribed && newArticle)

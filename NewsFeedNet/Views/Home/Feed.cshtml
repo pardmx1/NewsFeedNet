@@ -92,6 +92,7 @@
                 },
                 success: function (result) {
                     $('#articles').html(result);
+                    //TODO: Store las notice in ViewBag
                 },
                 error: function (xhr) {
                     console.log('error : ' + xhr.status + ' - ' + xhr.statusText + ' - ' + xhr.responseText);
