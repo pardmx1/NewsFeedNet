@@ -60,12 +60,8 @@ namespace NewsFeedNet.Controllers
 
         public async Task<JsonResult> SetCategories(string[] categories)
         {
-            //if (HttpContext.Request.Cookies.ContainsKey("categories")) 
-            //{
             HttpContext.Response.Cookies.Append("categories", String.Join(",", categories));
             var sourcesList = await Sources();
-            //}
-            //int status = 1;
             return Json(JsonConvert.SerializeObject((from s in sourcesList select s).Take(10)));
         }
 
@@ -124,35 +120,6 @@ namespace NewsFeedNet.Controllers
                 newArticle = false;
             }
 
-            //PushSubscription pushSubscription = new PushSubscription();
-            //string ep = HttpContext.Request.Cookies["ep"];
-
-            //if(!String.IsNullOrEmpty(ep))             
-            //{
-            //    PushInfo pushInfo = _newsFeedDbContext.PushInfos.Where(p => p.EndPoint == ep).FirstOrDefault<PushInfo>();
-            //    pushSubscription.Endpoint = pushInfo.EndPoint;
-            //    pushSubscription.P256DH = pushInfo.P256dh;
-            //    pushSubscription.Auth = pushInfo.Auth;
-
-            //    var message = "New articles avaible!";
-            //    var subject = _configuration["VAPID:subject"];
-            //    var publicKey = _configuration["VAPID:publicKey"];
-            //    var privateKey = _configuration["VAPID:privateKey"];
-
-            //    var vapidDetials = new VapidDetails(subject, publicKey, privateKey);
-            //    var webPushClient = new WebPushClient();
-
-            //    try
-            //    {
-            //        await webPushClient.SendNotificationAsync(pushSubscription, message, vapidDetials);
-            //    }
-            //    catch (WebPushException e)
-            //    {
-            //        Console.WriteLine("Http STATUS code" + e.StatusCode);
-            //    }
-
-            //}
-
             return PartialView("_PartialFeed", articles);
         }
 
@@ -165,11 +132,6 @@ namespace NewsFeedNet.Controllers
             pushInfo.EndPoint = endPoint;
             pushInfo.P256dh = p256dh;
             pushInfo.Auth = auth;
-
-            //if (String.IsNullOrEmpty(pushInfo.Name)) 
-            //{
-            //    pushInfo.Name = Guid.NewGuid().ToString();  
-            //}
 
             try
             {
