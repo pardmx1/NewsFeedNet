@@ -30,9 +30,9 @@ namespace NewsFeedNet.Services
             var httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(_baseUrl);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("X-Api-Key",_token);
-
-            var response = await httpClient.GetAsync($"/v2/everything?sources={sources}");
-
+            
+            //var response = await httpClient.GetAsync($"/v2/everything?sources={sources}");
+            var response = await httpClient.GetAsync($"/v2/top-headlines?sources={sources}");
             if (response.IsSuccessStatusCode)
             {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -71,7 +71,8 @@ namespace NewsFeedNet.Services
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("X-Api-Key", _token);
             
 
-            var response = await httpClient.GetAsync($"/v2/top-headlines/sources?category={category}");
+            //var response = await httpClient.GetAsync($"/v2/top-headlines/sources?category={category}");
+            var response = await httpClient.GetAsync($"/v2/top-headlines/sources?language=en");
 
             if (response.IsSuccessStatusCode)
             {

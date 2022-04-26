@@ -29,7 +29,6 @@ namespace NewsFeedNet.Controllers
 
         public IActionResult Index()
         {
-            ViewBag.applicationServerKey = _configuration["VAPID:publicKey"];
             if (!HttpContext.Request.Cookies.ContainsKey("categories") || String.IsNullOrEmpty(HttpContext.Request.Cookies["categories"]))
             {
                 IndexViewModel view = new IndexViewModel();
@@ -46,6 +45,8 @@ namespace NewsFeedNet.Controllers
 
         public IActionResult Feed()
         {
+            ViewBag.PublicKey = _configuration["VAPID:publicKey"];
+            ViewBag.LastArticle = "";
             FeedViewModel view = new FeedViewModel();
             view.refreshTime =  Convert.ToInt32(HttpContext.Request.Cookies["refresh"]);
             return View(view);
@@ -88,70 +89,111 @@ namespace NewsFeedNet.Controllers
         }
 
         [HttpPost]
-        public async Task<PartialViewResult> PartialFeed(string startDate, string endDate)
+        public async Task<PartialViewResult> PartialFeed(string startDate, string endDate, bool subscribed, string uid)
         {
+            bool newArticle = false;
             List<Article> articles = new List<Article>();
             string sources = HttpContext.Request.Cookies["sources"];
             if (String.IsNullOrEmpty(startDate) && String.IsNullOrEmpty(endDate))
-            {                
-                articles = await _newsApi.GetArticles(sources);
+            {
+                //articles = await _newsApi.GetArticles(sources);
+                if (ViewBag.LastArticle = articles[0].url) {
+                    newArticle = true;
+                    ViewBag.LastArticle = articles[0].url;
+                }
             }
             else
             {
-                articles = await _newsApi.GetArticlesByDate(sources, startDate, endDate);
+                //articles = await _newsApi.GetArticlesByDate(sources, startDate, endDate);
             }
 
-            PushSubscription pushSubscription = new PushSubscription();
-            string ep = HttpContext.Request.Cookies["ep"];
-
-            PushInfo pushInfo = _newsFeedDbContext.PushInfos.Where(p => p.EndPoint == ep).FirstOrDefault<PushInfo>();
-            pushSubscription.Endpoint = pushInfo.EndPoint;
-            pushSubscription.P256DH = pushInfo.P256dh;
-            pushSubscription.Auth = pushInfo.Auth;
-
-            var message = "New articles avaible!";
-            var subject = _configuration["VAPID:subject"];
-            var publicKey = _configuration["VAPID:publicKey"];
-            var privateKey = _configuration["VAPID:privateKey"];
-
-            var vapidDetials = new VapidDetails(subject, publicKey, privateKey);
-            var webPushClient = new WebPushClient();
-
-            try 
+            if(subscribed && newArticle)
             {
-                webPushClient.SendNotification(pushSubscription, message, vapidDetials);
+                var payload = "New articles avaible!";
+                var device = await _newsFeedDbContext.PushInfos.SingleOrDefaultAsync(m => m.Name == uid);
+
+                var subject = _configuration["VAPID:subject"];
+                var publicKey = _configuration["VAPID:publicKey"];
+                var privateKey = _configuration["VAPID:privateKey"];
+
+                var pushSubscription = new PushSubscription(device.EndPoint, device.P256dh, device.Auth);
+                var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
+
+                var webPushClient = new WebPushClient();
+                webPushClient.SendNotification(pushSubscription, payload, vapidDetails);
+                newArticle = false;
             }
-            catch (WebPushException e) {
-                Console.WriteLine("Http STATUS code" + e.StatusCode);
-            }
+
+            //PushSubscription pushSubscription = new PushSubscription();
+            //string ep = HttpContext.Request.Cookies["ep"];
+
+            //if(!String.IsNullOrEmpty(ep))             
+            //{
+            //    PushInfo pushInfo = _newsFeedDbContext.PushInfos.Where(p => p.EndPoint == ep).FirstOrDefault<PushInfo>();
+            //    pushSubscription.Endpoint = pushInfo.EndPoint;
+            //    pushSubscription.P256DH = pushInfo.P256dh;
+            //    pushSubscription.Auth = pushInfo.Auth;
+
+            //    var message = "New articles avaible!";
+            //    var subject = _configuration["VAPID:subject"];
+            //    var publicKey = _configuration["VAPID:publicKey"];
+            //    var privateKey = _configuration["VAPID:privateKey"];
+
+            //    var vapidDetials = new VapidDetails(subject, publicKey, privateKey);
+            //    var webPushClient = new WebPushClient();
+
+            //    try
+            //    {
+            //        await webPushClient.SendNotificationAsync(pushSubscription, message, vapidDetials);
+            //    }
+            //    catch (WebPushException e)
+            //    {
+            //        Console.WriteLine("Http STATUS code" + e.StatusCode);
+            //    }
+
+            //}
 
             return PartialView("_PartialFeed", articles);
         }
 
-        public async Task<JsonResult> SavePushSub(string endPoint, string p256dh, string auth)
+        public async Task<JsonResult> SavePushSub(string uid, string endPoint, string p256dh, string auth)
         {
 
-            var subscription = new PushSubscription(endPoint, p256dh, auth);
-            PushInfo pushInfo;
+            
+            PushInfo pushInfo = new PushInfo();
+            pushInfo.Name = uid; 
+            pushInfo.EndPoint = endPoint;
+            pushInfo.P256dh = p256dh;
+            pushInfo.Auth = auth;
+
+            //if (String.IsNullOrEmpty(pushInfo.Name)) 
+            //{
+            //    pushInfo.Name = Guid.NewGuid().ToString();  
+            //}
 
             try
             {
-                pushInfo = _newsFeedDbContext.PushInfos.Where(p => p.EndPoint == endPoint).FirstOrDefault<PushInfo>();
+                pushInfo = _newsFeedDbContext.PushInfos.Where(p => p.Name == pushInfo.Name).FirstOrDefault();
                 if (pushInfo == null)
                 {
                     pushInfo = new PushInfo();
-                    pushInfo.EndPoint = subscription.Endpoint;
-                    pushInfo.P256dh = subscription.P256DH;
-                    pushInfo.Auth = subscription.Auth;
+                    pushInfo.Name = Guid.NewGuid().ToString();
+                    pushInfo.EndPoint = endPoint;
+                    pushInfo.P256dh = p256dh;
+                    pushInfo.Auth = auth;
                     _newsFeedDbContext.Add(pushInfo);
                     await _newsFeedDbContext.SaveChangesAsync();
                     HttpContext.Response.Cookies.Append("ep", pushInfo.EndPoint);
-                    return Json("OK");
+                    return Json(pushInfo.Name.ToString());
                 }
                 else
                 {
+                    pushInfo.Auth = auth;
+                    pushInfo.P256dh = p256dh;
+                    _newsFeedDbContext.PushInfos.Update(pushInfo);
+                    await _newsFeedDbContext.SaveChangesAsync();
                     HttpContext.Response.Cookies.Append("ep", pushInfo.EndPoint);
-                    return Json("Already Registered");
+                    return Json(pushInfo.Name.ToString());
                 }                
             }
             catch (DbUpdateException ex) {

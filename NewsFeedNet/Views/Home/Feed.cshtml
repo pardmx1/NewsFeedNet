@@ -3,14 +3,25 @@
     ViewData["Title"] = "News Feed";
 }
 
+<div id="NoSupport" style="display:none;">
+    Your browser does not support Push Notifications or you have blocked notifications
+</div>
+
+<input id="endpoint" name="endpoint" hidden />
+<input id="p256dh" name="p256dh" hidden />
+<input id="auth" name="auth" hidden />
+<input id="idDevice" name="idDevice" hidden />
+<input id="isSubscribed" name="isSubscribed" hidden value="false"/>
+<input id="sk" name="sk" hidden value="@ViewBag.applicationServerkey" />
+
 <div class="container">
-    @Html.HiddenFor(m => m.refreshTime, new { @id = "refreshTime"})
+    @Html.HiddenFor(m => m.refreshTime, new { @id = "refreshTime" })
     <div class="row justify-content-center">
-        
+
         <h3>Borwse News by Date</h3>
         <div class="col">
             <div class="input-group">
-                @Html.TextBoxFor(m => m.startDate, "{0:yyyy-MM-dd}", new { placeholder="Select Date", @id = "startDate", @class = "form-control" })
+                @Html.TextBoxFor(m => m.startDate, "{0:yyyy-MM-dd}", new { placeholder = "Select Date", @id = "startDate", @class = "form-control" })
                 <div class="input-group-append">
                     <span class="input-group-text" id="basic-addon2">Start Date</span>
                 </div>
@@ -35,7 +46,13 @@
 
 @section scripts
 {
-    <script type="text/javascript">        
+    <script src="@Url.Content("~/js/CreateDevice.js")"></script>
+    <script>
+    //Vapid public key.
+    var applicationServerPublicKey = '@ViewBag.PublicKey';
+    </script>
+
+    <script type="text/javascript">
         $(document).ready(function () {
             var refreshTime = $('#refreshTime').val();
             $('#startDate').datepicker({
@@ -48,18 +65,20 @@
                 GetArticles();
             });
             GetArticles();
-            setInterval(UpdateFeeed,refreshTime * 1000);
+            setInterval(UpdateFeeed, refreshTime * 1000);
 
         });
 
         function UpdateFeeed() {
-            console.log('feed updated');
+            //console.log('feed updated');
             GetArticles();
         }
 
         function GetArticles() {
             var startDate = $('#startDate').val();
             var endDate = $('#endDate').val();
+            var subscribed = $("#isSubscribed").val();
+            var uid = localStorage.uid;
             var url = '/Home/PartialFeed'
             $.ajax({
                 type: 'POST',
@@ -67,7 +86,12 @@
                 cache: false,
                 async: true,
                 dataType: 'html',
-                data: { startDate: startDate, endDate: endDate },
+                data: {
+                    startDate: startDate,
+                    endDate: endDate,
+                    subscribed: subscribed,
+                    uid: uid
+                },
                 success: function (result) {
                     $('#articles').html(result);
                 },
@@ -78,5 +102,94 @@
         }
 
     </script>
+
+    @*<script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker.register("/ServiceWorker.js")
+                        .then((reg) => {
+                            if (Notification.permission === "granted") {
+                                getSubscription(reg);
+                            } else if (Notification.permission === "blocked") {
+                                $("#NoSupport").show();
+                            } else {
+                                requestNotificationAccess(reg);
+
+                            }
+                        });
+                });
+            } else {
+                //browser no support;
+                alert("your browser not support notifications")
+            }
+
+            function requestNotificationAccess(reg) {
+                Notification.requestPermission(function (status) {
+                    if (status === "granted") {
+                        getSubscription(reg);
+                    } else {
+                        $("#NoSupport").show();
+                    }
+                });
+            }
+
+            function getSubscription(reg) {
+                console.log("gs");
+                reg.pushManager.getSubscription().then(function (sub) {
+                    if (sub === null) {
+                        reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: "@ViewBag.applicationServerkey"
+                        }).then(function (sub) {
+                            fillSubscribeFields(sub);
+                        }).catch(function (e) {
+                            console.error("Unable to subscribe ti push", e);
+                        });
+                    } else {
+                        fillSubscribeFields(sub);
+                    }
+                });
+            }
+
+            function fillSubscribeFields(sub) {
+                $("#endpoint").val(sub.endpoint);
+                $("#p256dh").val(arrayBufferToBase64(sub.getKey("p256dh")));
+                $("#auth").val(arrayBufferToBase64(sub.getKey("auth")));
+                console.log(sub.endpoint);
+                saveSubscription();
+            }
+
+            function arrayBufferToBase64(buffer) {
+                console.log("abf")
+                var binary = '';
+                var bytes = new Uint8Array(buffer);
+                var len = bytes.byteLength;
+                for (var i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return window.btoa(binary);
+            }
+
+            function saveSubscription() {
+                var url = '/Home/SavePushSub';
+                var endPoint = $("#endpoint").val();
+                var p256dh = $("#p256dh").val();
+                var auth = $("#auth").val();
+
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    dataType: 'json',
+                    data: {
+                        endPoint: endPoint,
+                        p256dh: p256dh,
+                        auth: auth
+                    },
+                    success: function (data) {
+                        alert(data);
+                    }
+                });
+            }
+        </script>*@
 }
 
