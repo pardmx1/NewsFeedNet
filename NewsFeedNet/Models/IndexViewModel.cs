@@ -19,7 +19,7 @@ namespace NewsFeedNet.Models
 
         public Category CategoryType { get; set; }
         [Required]
-        public int refreshFreq { get; set; } = 10;
+        public int refreshFreq { get; set; } = 60;
         [Required]
         public List<string> sources { get; set; } = new List<string>();
     }

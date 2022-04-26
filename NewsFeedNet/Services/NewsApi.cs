@@ -63,22 +63,24 @@ namespace NewsFeedNet.Services
             return articles;
         }
 
-        public async Task<List<Source>> GetSources(string category)
+        public async Task<List<Source>> GetSources(string[] categories)
         {
             List<Source> sources = new List<Source>();
             var httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(_baseUrl);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("X-Api-Key", _token);
             
-
-            //var response = await httpClient.GetAsync($"/v2/top-headlines/sources?category={category}");
-            var response = await httpClient.GetAsync($"/v2/top-headlines/sources?language=en");
-
-            if (response.IsSuccessStatusCode)
+            foreach(string c in categories)
             {
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-                sources = JsonConvert.DeserializeObject<ApiSources>(jsonResponse).sources;               
+                var response = await httpClient.GetAsync($"/v2/top-headlines/sources?category={c}&language=en");
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonResponse = await response.Content.ReadAsStringAsync();
+                    sources.AddRange(JsonConvert.DeserializeObject<ApiSources>(jsonResponse).sources);
+                }
             }
+            //var response = await httpClient.GetAsync($"/v2/top-headlines/sources?category={category}");
+            //var response = await httpClient.GetAsync($"/v2/top-headlines/sources?language=en");
 
             return sources;
         }

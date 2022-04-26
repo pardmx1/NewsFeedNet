@@ -29,10 +29,10 @@ namespace NewsFeedNet.Controllers
 
         public IActionResult Index()
         {
-            if (!HttpContext.Request.Cookies.ContainsKey("categories") || String.IsNullOrEmpty(HttpContext.Request.Cookies["categories"]))
+            if (!HttpContext.Request.Cookies.ContainsKey("categories") || String.IsNullOrEmpty(HttpContext.Request.Cookies["categories"])
+                || !HttpContext.Request.Cookies.ContainsKey("sources") || String.IsNullOrEmpty(HttpContext.Request.Cookies["sources"]))             
             {
                 IndexViewModel view = new IndexViewModel();
-                TempData["preferences"] = false;
                 HttpContext.Response.Cookies.Append("categories", "");
                 return View(view);
             }
@@ -46,23 +46,46 @@ namespace NewsFeedNet.Controllers
         public IActionResult Feed()
         {
             ViewBag.PublicKey = _configuration["VAPID:publicKey"];
-            ViewBag.LastArticle = "";
+            HttpContext.Response.Cookies.Append("lastArt", "");
             FeedViewModel view = new FeedViewModel();
             view.refreshTime =  Convert.ToInt32(HttpContext.Request.Cookies["refresh"]);
             return View(view);
         }
 
-        public async Task<List<Source>> Sources()
+        public async Task<List<Source>> Sources(string[] categories)
         {
-            string[] categories = HttpContext.Request.Cookies["categories"].Split();
-            return await _newsApi.GetSources(categories[0]);
+            //string[] categories = HttpContext.Request.Cookies["categories"].Split(",");
+            return await _newsApi.GetSources(categories);
         }
 
         public async Task<JsonResult> SetCategories(string[] categories)
         {
-            HttpContext.Response.Cookies.Append("categories", String.Join(",", categories));
-            var sourcesList = await Sources();
-            return Json(JsonConvert.SerializeObject((from s in sourcesList select s).Take(10)));
+            if (categories.Length > 1)
+            {
+                HttpContext.Response.Cookies.Append("categories", String.Join(",", categories));
+            }
+            else
+            {
+                HttpContext.Response.Cookies.Append("categories", categories[0]);
+            }
+
+            var sourcesList = await Sources(categories);
+
+            int sc = 10/categories.Length;
+
+            List<Source> sources = new List<Source>();
+            Random random = new Random();
+            foreach(string c in categories)
+            {
+                sources.AddRange(sourcesList.OrderBy(x => random.Next()).Where(x => x.category.Equals(c)).Take(sc));
+            }
+
+            if(sources.Count() < 10)
+            {
+                sources.Add(sourcesList.Last());
+            }
+
+            return Json(JsonConvert.SerializeObject(sources));
         }
 
         [HttpPost]
@@ -73,9 +96,13 @@ namespace NewsFeedNet.Controllers
 
             return RedirectToAction("Feed");
         }
-        public IActionResult Privacy()
+        public IActionResult Settings()
         {
-            return View();
+            Response.Cookies.Delete("sources");
+            Response.Cookies.Delete("refresh");
+            Response.Cookies.Delete("lastArt");
+            Response.Cookies.Delete("categories");
+            return RedirectToActionPermanent("Index");
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -90,12 +117,13 @@ namespace NewsFeedNet.Controllers
             bool newArticle = false;
             List<Article> articles = new List<Article>();
             string sources = HttpContext.Request.Cookies["sources"];
+            string lastArt = HttpContext.Request.Cookies["lastArt"];
             if (String.IsNullOrEmpty(startDate) && String.IsNullOrEmpty(endDate))
             {
                 articles = await _newsApi.GetArticles(sources);
-                if (ViewBag.LastArticle != articles[0].url) {
+                if (!lastArt.Equals(articles[0].url)) {
                     newArticle = true;
-                    ViewBag.LastArticle = articles[0].url;
+                    HttpContext.Response.Cookies.Append("lastArt", articles[0].url);
                 }
             }
             else
@@ -119,7 +147,7 @@ namespace NewsFeedNet.Controllers
                 webPushClient.SendNotification(pushSubscription, payload, vapidDetails);
                 newArticle = false;
             }
-
+            HttpContext.Response.Cookies.Append("lastArt", articles[0].url);
             return PartialView("_PartialFeed", articles);
         }
 
@@ -145,7 +173,7 @@ namespace NewsFeedNet.Controllers
                     pushInfo.Auth = auth;
                     _newsFeedDbContext.Add(pushInfo);
                     await _newsFeedDbContext.SaveChangesAsync();
-                    HttpContext.Response.Cookies.Append("ep", pushInfo.EndPoint);
+                    //HttpContext.Response.Cookies.Append("ep", pushInfo.EndPoint);
                     return Json(pushInfo.Name.ToString());
                 }
                 else
@@ -154,7 +182,7 @@ namespace NewsFeedNet.Controllers
                     pushInfo.P256dh = p256dh;
                     _newsFeedDbContext.PushInfos.Update(pushInfo);
                     await _newsFeedDbContext.SaveChangesAsync();
-                    HttpContext.Response.Cookies.Append("ep", pushInfo.EndPoint);
+                    //HttpContext.Response.Cookies.Append("ep", pushInfo.EndPoint);
                     return Json(pushInfo.Name.ToString());
                 }                
             }

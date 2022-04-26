@@ -9,17 +9,17 @@ namespace NewsFeedNet.Data
 {
     public class NewsFeedDbContext : DbContext
     {
-        public NewsFeedDbContext(DbContextOptions<NewsFeedDbContext> options): base(options)
+        public NewsFeedDbContext(DbContextOptions<NewsFeedDbContext> options) : base(options)
         {
 
         }
 
         public DbSet<PushInfo> PushInfos { get; set; }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder) 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<PushInfo>().ToTable("PushInfo");    
-        
+            modelBuilder.Entity<PushInfo>().ToTable("PushInfo");
+
         }
 
     }

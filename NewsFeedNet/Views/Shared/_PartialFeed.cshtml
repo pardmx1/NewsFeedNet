@@ -1,18 +1,25 @@
 ﻿@model List<Article>
 
-<div class="text-center">
-
-    @foreach (var article in Model)
-    {
-        <div class="card" style="width: 18rem;">
-            <img src=@article.urlToImage class="card-img-top" alt="...">
-            <div class="card-body">
-                <h5 class="card-title">@article.title</h5>
-                <p class="card-text">@article.description</p>
-                <a href="@article.url" class="btn btn-primary">Go somewhere</a>
-            </div>
+<div id="parialFeed" class="text-center">
+    <div class="container">
+        <div class="row row-cols-1 row-cols-md-3 justify-content-center">
+            @foreach (var article in Model)
+            {
+                <div class="col mb-4">
+                    <div class="card h-100 text-center" style="width: 18rem;">
+                        <img src=@article.urlToImage class="card-img-top" alt="..." href="@article.url">
+                        <div class="card-body">
+                            <h5 class="card-title">@article.title</h5>
+                            <p class="card-text">@article.description</p>
+                            <p class="card-text"><small class="text-muted">Published at @article.publishedAt</small></p>
+                            <a name="articleUrl" href="@article.url" class="btn btn-primary">View More >>></a>
+                            <div class="card-footer">
+                                <small class="text-muted">From: @article.source.name</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
-
-    }
-
+    </div>
 </div>

@@ -8,6 +8,10 @@
     <h3>Please select your preferences to continue</h3>
 </div>
 
+<div id="divAlert" class="alert alert-danger" role="alert" style="display: none">
+    You must select at leat one category of interest!
+</div>
+
 @using (Html.BeginForm("SaveSettings", "Home", FormMethod.Post, new { @id = "formSettings" }))
 {
     <div class="container">
@@ -56,7 +60,7 @@
                     <div class="row justify-content-center">
                         <div class="col">
                             <div class="input-group mb-3">
-                                @Html.TextBoxFor(m => m.refreshFreq, new { @type = "number", @class = "form-control", @placeholder = "10", @min = "10", @max = "120" })
+                                @Html.TextBoxFor(m => m.refreshFreq, new { @type = "number", @class = "form-control", @placeholder = "60", @min = "10", @max = "120" })
                                 @*<input type="number" class="form-control" placeholder="10" aria-label="Refresh time" aria-describedby="basic-addon2" min="10" max="120">*@
                                 <div class="input-group-append">
                                     <span class="input-group-text" id="basic-addon2">secs.</span>
@@ -73,14 +77,19 @@
                 <div class="card-header">
                     News Sources
                 </div>
-                <div class="body" id="sourcesList">
+                <div class="card-body">
+                    <div class="container">
+                        <div class="row row-cols-3 justify-content-center" id="sourcesList">
 
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+        <br />
         <div class="row justify-content-center">
             <button id="saveBtn" type="button" class="btn btn-primary">Save</button>
-            <button id="settingsBtn" type="submit" class="btn btn-primary">Save</button>
+            <button id="settingsBtn" type="button" class="btn btn-primary">Save</button>
         </div>
     </div>
 }
@@ -94,13 +103,42 @@
             $('#sourceDiv').hide();
             $('#settingsBtn').hide();
 
+            $("input[name ='category']").click(function () {
+                $("#divAlert").hide();
+                $("#catDiv").removeClass("border-danger");
+            });
 
-            $('#saveBtn').click(function () {
+            $("input[name ='sources']").click(function () {
+                $("#divAlert").hide();
+                $("#sourceDiv").removeClass("border-danger");
+            });
+
+            $("#settingsBtn").click(function () {
+                var val = [];
+                $("input[name='sources']:checked").each(function (i) {
+                    val[i] = $(this).val();
+                });
+                if ($.isEmptyObject(val)) {
+                    $("#divAlert").text("You must select at least on source for the news!");
+                    $("#divAlert").show();
+                    $("#sourceDiv").addClass("border-danger");
+                    return false;
+                }
+                $("#formSettings").submit();
+            });
+
+
+            $("#saveBtn").click(function () {
                 var val = [];
                 var url = '/Home/SetCategories';
                 $("input[name='category']:checked").each(function (i) {
                     val[i] = $(this).val();
                 });
+                if ($.isEmptyObject(val)) {
+                    $("#divAlert").show();
+                    $("#catDiv").addClass("border-danger");
+                    return false;
+                }
                 $.ajax({
                     type: 'POST',
                     url: url,
@@ -111,18 +149,22 @@
                     success: function (data) {
                         $.each(JSON.parse(data), function (i, item) {
                             $('#sourcesList').append(
-                                "<div class=\"card\" style=\"width: 18rem;\">" +
+                                "<div class\"col\">" +
+                                "<div class=\"card h-100\" style=\"width: 18rem;\">" +
                                 "<div class=\"card-body\">" +
                                 "<h5 class=\"card-title\">" + item.name + "</h5>" +
+                                "<p class=\"card-text\"><small class=\"text-muted\">" + item.category +  "</small></p>" +
                                 "<p class=\"card-text\">" + item.description + "</p>" +
                                 "<div class=\"custom-control custom-switch\">" +
-                                "<input name=\"sources[]\" type=\"checkbox\" class=\"custom-control-input\" id=\"" + item.id + "\" value=\"" + item.id + "\">" +
+                                "<input name=\"sources\" type=\"checkbox\" class=\"custom-control-input\" id=\"" + item.id + "\" value=\"" + item.id + "\">" +
                                 "<label class=\"custom-control-label\" for=\"" + item.id + "\">Enable Source</label>" +
+                                "</div>" +
                                 "</div>" +
                                 "</div>" +
                                 "</div>"
                             );
                         });
+                        $("#divAlert").hide();
                         $('#catDiv').hide();
                         $('#freqDiv').show();
                         $('#sourceDiv').show();
