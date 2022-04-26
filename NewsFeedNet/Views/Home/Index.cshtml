@@ -1,0 +1,243 @@
+﻿@model IndexViewModel
+@{
+    ViewData["Title"] = "Home Page";
+}
+@*<div id="NoSupport" style="display:none;">
+    Your browser does not support Push Notifications or you have blocked notifications
+</div>
+
+<input id="endpoint" name="endpoint" hidden />
+<input id="p256dh" name="p256dh" hidden />
+<input id="auth" name="auth" hidden />*@
+
+<div class="text-center">
+    <h1 class="display-4">Welcome to news feed</h1>
+    <h3>Please select your preferences to continue</h3>
+</div>
+
+@using (Html.BeginForm("SaveSettings", "Home", FormMethod.Post, new { @id = "formSettings" }))
+{
+    <div class="container">
+        <div class="row justify-content-center">
+            <div id="catDiv" class="card">
+                <div class="card-header">
+                    Category
+                </div>
+                <div class="card-body">
+                    <div class="row justify-content-center">
+                        <div class="col">
+                            <div class="custom-control custom-switch">
+                                <input name="category" type="checkbox" class="custom-control-input" id="customSwitch1" value="@Enum.GetValues(typeof(IndexViewModel.Category)).GetValue(0)">
+                                <label class="custom-control-label" for="customSwitch1">Business</label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input name="category" type="checkbox" class="custom-control-input" id="customSwitch2" value="@Enum.GetValues(typeof(IndexViewModel.Category)).GetValue(1)">
+                                <label class="custom-control-label" for="customSwitch2">Entertaiment</label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input name="category" type="checkbox" class="custom-control-input" id="customSwitch3" value="@Enum.GetValues(typeof(IndexViewModel.Category)).GetValue(2)">
+                                <label class="custom-control-label" for="customSwitch3">General</label>
+                            </div>
+                            @*<div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="customSwitch4">
+                                    <label class="custom-control-label" for="customSwitch4">Health</label>
+                                </div>*@
+                        </div>
+                        <div class="col">
+                            @*<div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="customSwitch5">
+                                    <label class="custom-control-label" for="customSwitch5">Science</label>
+                                </div>*@
+                            <div class="custom-control custom-switch">
+                                <input name="category" type="checkbox" class="custom-control-input" id="customSwitch6" value="@Enum.GetValues(typeof(IndexViewModel.Category)).GetValue(3)">
+                                <label class="custom-control-label" for="customSwitch6">Sports</label>
+                            </div>
+                            <div class="custom-control custom-switch">
+                                <input name="category" type="checkbox" class="custom-control-input" id="customSwitch7" value="@Enum.GetValues(typeof(IndexViewModel.Category)).GetValue(4)">
+                                <label class="custom-control-label" for="customSwitch7">@Enum.GetValues(typeof(IndexViewModel.Category)).GetValue(4)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div id="freqDiv" class="card">
+                <div class="card-header">
+                    Update frequency
+                </div>
+                <div class="card-body">
+                    <div class="row justify-content-center">
+                        <div class="col">
+                            <div class="input-group mb-3">
+                                @Html.TextBoxFor(m => m.refreshFreq, new { @type = "number", @class = "form-control", @placeholder = "10", @min = "10", @max = "120" })
+                                @*<input type="number" class="form-control" placeholder="10" aria-label="Refresh time" aria-describedby="basic-addon2" min="10" max="120">*@
+                                <div class="input-group-append">
+                                    <span class="input-group-text" id="basic-addon2">secs.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div id="sourceDiv" class="card">
+                <div class="card-header">
+                    News Sources
+                </div>
+                <div class="body" id="sourcesList">
+
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <button id="saveBtn" type="button" class="btn btn-primary">Save</button>
+            <button id="settingsBtn" type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+}
+
+
+@section scripts {
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            $('#freqDiv').hide();
+            $('#sourceDiv').hide();
+            $('#settingsBtn').hide();
+
+
+            $('#saveBtn').click(function () {
+                var val = [];
+                var url = '/Home/SetCategories';
+                $("input[name='category']:checked").each(function (i) {
+                    val[i] = $(this).val();
+                });
+                alert(val);
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    dataType: 'json',
+                    data: {
+                        categories: val
+                    },
+                    success: function (data) {
+                        alert(data);
+                        $.each(JSON.parse(data), function (i, item) {
+                            $('#sourcesList').append(
+                                "<div class=\"card\" style=\"width: 18rem;\">" +
+                                "<div class=\"card-body\">" +
+                                "<h5 class=\"card-title\">" + item.name + "</h5>" +
+                                "<p class=\"card-text\">" + item.description + "</p>" +
+                                "<div class=\"custom-control custom-switch\">" +
+                                "<input name=\"sources[]\" type=\"checkbox\" class=\"custom-control-input\" id=\"" + item.id + "\" value=\"" + item.id + "\">" +
+                                "<label class=\"custom-control-label\" for=\"" + item.id + "\">Enable Source</label>" +
+                                "</div>" +
+                                "</div>" +
+                                "</div>"
+                            );
+                        });
+                        $('#catDiv').hide();
+                        $('#freqDiv').show();
+                        $('#sourceDiv').show();
+                    }
+                });
+                $(this).hide();
+                $('#settingsBtn').show();
+            });
+        });
+    </script>
+
+    @*<script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/ServiceWorker.js")
+                    .then((reg) => {
+                        if (Notification.permission === "granted") {
+                            getSubscription(reg);
+                        } else if (Notification.permission === "blocked") {
+                            $("#NoSupport").show();
+                        } else {
+                            requestNotificationAccess(reg);
+                            
+                        }
+                    });
+            });
+        } else {
+            //browser no support;
+            alert("your browser not support notifications")
+        }
+
+        function requestNotificationAccess(reg) {
+            Notification.requestPermission(function (status) {
+                if (status === "granted") {
+                    getSubscription(reg);
+                } else {
+                    $("#NoSupport").show();
+                }
+            });
+        }
+
+        function getSubscription(reg) {
+            console.log("gs");
+            reg.pushManager.getSubscription().then(function (sub) {
+                if (sub === null) {
+                    reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: "@ViewBag.applicationServerkey"
+                    }).then(function (sub) {
+                        fillSubscribeFields(sub);
+                    }).catch(function (e) {
+                        console.error("Unable to subscribe ti push", e);
+                    });
+                } else {
+                    fillSubscribeFields(sub);
+                }
+            });
+        }
+
+        function fillSubscribeFields(sub) {
+            $("#endpoint").val(sub.endpoint);
+            $("#p256dh").val(arrayBufferToBase64(sub.getKey("p256dh")));
+            $("#auth").val(arrayBufferToBase64(sub.getKey("auth")));
+            console.log(sub.endpoint);
+            saveSubscription();
+        }
+
+        function arrayBufferToBase64(buffer) {
+            console.log("abf")
+            var binary = '';
+            var bytes = new Uint8Array(buffer);
+            var len = bytes.byteLength;
+            for (var i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        function saveSubscription() {
+            var url = '/Home/SavePushSub';
+            var endPoint = $("#endpoint").val();
+            var p256dh = $("#p256dh").val();
+            var auth = $("#auth").val();
+
+            $.ajax({
+                type: 'POST',
+                url: url,
+                dataType: 'json',
+                data: {
+                    endPoint: endPoint,
+                    p256dh: p256dh,
+                    auth: auth
+                },
+                success: function (data) {
+                    alert(data);                                     
+                }
+            });
+        }
+    </script>*@
+}
+
