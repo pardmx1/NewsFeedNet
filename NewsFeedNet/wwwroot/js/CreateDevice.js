@@ -162,7 +162,7 @@ function saveSubscription() {
                 $("#isSubscribed").val("false");
             }
             
-            alert(data);
+            //alert(data);
         }
     });
 }
