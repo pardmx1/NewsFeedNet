@@ -54,6 +54,8 @@
     <script type="text/javascript">
         var setIntervalId = 0;
         var refreshTime = 60;
+        var pages = 1;
+        var page = 1;
         $(document).ready(function () {
             
             refreshTime = $('#refreshTime').val();
@@ -82,6 +84,11 @@
             GetArticles();
         }
 
+        function ChangePage(data) {
+            page = data;
+            GetArticles();
+        }
+
         function GetArticles() {
             var startDate = $('#startDate').val();
             var endDate = $('#endDate').val();
@@ -104,7 +111,8 @@
                     startDate: startDate,
                     endDate: endDate,
                     subscribed: subscribed,
-                    uid: uid
+                    uid: uid,
+                    page: page
                 },
                 success: function (result) {
                     $('#articles').html(result);
@@ -113,6 +121,8 @@
                     console.log('error : ' + xhr.status + ' - ' + xhr.statusText + ' - ' + xhr.responseText);
                 }
             });
+            pages = $("#pages").val();
+            console.log(pages);
         }
 
     </script>

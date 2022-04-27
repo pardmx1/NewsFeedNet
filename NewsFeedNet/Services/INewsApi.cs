@@ -8,9 +8,9 @@ namespace NewsFeedNet.Services
 {
     public interface INewsApi
     {
-        Task<List<Article>> GetArticles(string sources);
+        Task<ApiArticles> GetArticles(string sources, string page);
         Task<List<Source>> GetSources(string[] categories);
 
-        Task<List<Article>> GetArticlesByDate(string sources, string startDate, string endDate);
+        Task<ApiArticles> GetArticlesByDate(string sources, string startDate, string endDate, string page);
     }
 }

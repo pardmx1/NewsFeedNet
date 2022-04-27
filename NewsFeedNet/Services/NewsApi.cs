@@ -24,43 +24,46 @@ namespace NewsFeedNet.Services
             _baseUrl = configurationBuilder.GetSection("NewsApiSettings:baseUrl").Value;
         }
 
-        public async Task<List<Article>> GetArticles(string sources)
+        public async Task<ApiArticles> GetArticles(string sources, string page)
         {
-            List<Article> articles = new List<Article>();
+            ApiArticles apiArticles = new ApiArticles();
+            apiArticles.articles = new List<Article>();
             var httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(_baseUrl);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("X-Api-Key",_token);
             
             //var response = await httpClient.GetAsync($"/v2/everything?sources={sources}");
-            var response = await httpClient.GetAsync($"/v2/top-headlines?sources={sources}");
+            var response = await httpClient.GetAsync($"/v2/top-headlines?pageSize=20&page={page}&sources={sources}");
             if (response.IsSuccessStatusCode)
             {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                articles = JsonConvert.DeserializeObject<ApiArticles>(jsonResponse).articles;
+                apiArticles = JsonConvert.DeserializeObject<ApiArticles>(jsonResponse);
+                apiArticles.totalResults = apiArticles.totalResults > 100 ? apiArticles.totalResults = 100 : apiArticles.totalResults;
 
             }
 
-            return articles;
+            return apiArticles;
 
         }
 
-        public async Task<List<Article>> GetArticlesByDate(string sources, string startDate, string endDate)
+        public async Task<ApiArticles> GetArticlesByDate(string sources, string startDate, string endDate, string page)
         {
-            List<Article> articles = new List<Article>();
+            ApiArticles apiArticles = new ApiArticles();
+            apiArticles.articles = new List<Article>();
             var httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(_baseUrl);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("X-Api-Key", _token);
 
-            var response = await httpClient.GetAsync($"/v2/everything?sources={sources}&from={startDate}&to={endDate}");
+            var response = await httpClient.GetAsync($"/v2/everything?pageSize=20&page={page}&sources={sources}&from={startDate}&to={endDate}");
 
             if (response.IsSuccessStatusCode)
             {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                articles = JsonConvert.DeserializeObject<ApiArticles>(jsonResponse).articles;
-
+                apiArticles = JsonConvert.DeserializeObject<ApiArticles>(jsonResponse);
+                apiArticles.totalResults = apiArticles.totalResults > 100 ? apiArticles.totalResults = 100 : apiArticles.totalResults;
             }
 
-            return articles;
+            return apiArticles;
         }
 
         public async Task<List<Source>> GetSources(string[] categories)

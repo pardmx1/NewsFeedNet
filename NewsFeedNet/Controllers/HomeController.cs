@@ -102,7 +102,7 @@ namespace NewsFeedNet.Controllers
             Response.Cookies.Delete("refresh");
             Response.Cookies.Delete("lastArt");
             Response.Cookies.Delete("categories");
-            return RedirectToActionPermanent("Index");
+            return RedirectToAction("Index");
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -112,23 +112,26 @@ namespace NewsFeedNet.Controllers
         }
 
         [HttpPost]
-        public async Task<PartialViewResult> PartialFeed(string startDate, string endDate, bool subscribed, string uid)
+        public async Task<PartialViewResult> PartialFeed(string startDate, string endDate, bool subscribed, string uid, string page)
         {
             bool newArticle = false;
-            List<Article> articles = new List<Article>();
+            ApiArticles apiArticles = new ApiArticles();
+            //List<Article> articles = new List<Article>();
             string sources = HttpContext.Request.Cookies["sources"];
             string lastArt = HttpContext.Request.Cookies["lastArt"];
             if (String.IsNullOrEmpty(startDate) && String.IsNullOrEmpty(endDate))
             {
-                articles = await _newsApi.GetArticles(sources);
-                if (!lastArt.Equals(articles[0].url)) {
+                
+                apiArticles = await _newsApi.GetArticles(sources, page);
+
+                if (!lastArt.Equals(apiArticles.articles[0].url)) {
                     newArticle = true;
-                    HttpContext.Response.Cookies.Append("lastArt", articles[0].url);
+                    HttpContext.Response.Cookies.Append("lastArt", apiArticles.articles[0].url);
                 }
             }
             else
             {
-                articles = await _newsApi.GetArticlesByDate(sources, startDate, endDate);
+                apiArticles = await _newsApi.GetArticlesByDate(sources, startDate, endDate, page);
             }
 
             if(subscribed && newArticle)
@@ -147,8 +150,8 @@ namespace NewsFeedNet.Controllers
                 webPushClient.SendNotification(pushSubscription, payload, vapidDetails);
                 newArticle = false;
             }
-            HttpContext.Response.Cookies.Append("lastArt", articles[0].url);
-            return PartialView("_PartialFeed", articles);
+            HttpContext.Response.Cookies.Append("lastArt", apiArticles.articles[0].url);
+            return PartialView("_PartialFeed", apiArticles);
         }
 
         public async Task<JsonResult> SavePushSub(string uid, string endPoint, string p256dh, string auth)
